@@ -2,7 +2,7 @@ const { DataTypes } = require('sequelize');
 const db = require('.');
 const { setExpiration } = require('./utils');
 
-const { SECRET_TTL } = process.env;
+const { CLIENT_TTL } = process.env;
 
 const User = db.define('User', {
   email: {
@@ -17,9 +17,22 @@ const User = db.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  passwordUpdated: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: new Date().toISOString(),
+  },
 });
 
-const Secret = db.define('Secret', {
+const Client = db.define('Client', {
+  agent: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  ip: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   secret: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -31,12 +44,17 @@ const Secret = db.define('Secret', {
   exp: {
     type: DataTypes.DATE,
     allowNull: false,
-    defaultValue: setExpiration(SECRET_TTL),
+    defaultValue: setExpiration(CLIENT_TTL),
+  },
+  lastLogin: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: new Date().toISOString(),
   },
 });
 
-Secret.belongsTo(User);
-User.hasMany(Secret);
+Client.belongsTo(User);
+User.hasMany(Client);
 
 exports.createUser = async ({
   pid,
@@ -44,14 +62,25 @@ exports.createUser = async ({
   password,
   secret,
   cid,
+  agent,
+  ip,
 }) => {
   try {
     let user = await User.findOne({ where: { email } });
     if (user) return { error: 'User already exists.' };
     user = await User.create({ pid, email, password });
-    const secretEntry = await Secret.create({ secret, cid });
-    await secretEntry.setUser(user.id);
-    return { pid: user.pid, secret: secretEntry.secret, cid: secretEntry.cid };
+    const client = await Client.create({
+      secret,
+      cid,
+      agent,
+      ip,
+    });
+    await client.setUser(user.id);
+    return {
+      pid: user.pid,
+      secret: client.secret,
+      cid: client.cid,
+    };
   } catch (err) {
     return { error: err };
   }
@@ -62,12 +91,18 @@ exports.getUser = async ({ pid, cid }) => {
     const user = await User.findOne({
       where: { pid },
       include: {
-        model: Secret,
+        model: Client,
+        as: 'clients',
         where: { cid },
       },
     });
-    if (!user || !user.Secrets.length) return null;
-    return { pid: user.pid, cid: user.Secrets[0].cid, secret: user.Secrets[0].secret };
+    if (!user || !user.client.length) return null;
+    const [client] = user.clients;
+    return {
+      pid: user.pid,
+      cid: client.cid,
+      secret: client.secret,
+    };
   } catch (err) {
     return { error: err };
   }
@@ -82,49 +117,66 @@ exports.getUserByEmail = async (email) => {
   }
 };
 
-exports.createSecret = async ({ userId, secret, cid }) => {
+exports.updateUser = async ({ pid, email, password }) => {
   try {
-    const secretEntry = await Secret.create({ secret, cid });
-    await secretEntry.setUser(userId);
+    const user = await User.findOne({ where: { pid } });
+    if (!user) return false;
+    if (email) user.email = email;
+    if (password) {
+      user.password = password;
+      user.passwordUpdated = new Date().toISOString();
+    }
+    await user.save();
+    return true;
+  } catch (err) {
+    return { error: err };
+  }
+};
+
+exports.createClient = async ({ userId, secret, cid }) => {
+  try {
+    const client = await Client.create({ secret, cid });
+    await client.setUser(userId);
     return {
-      secret: secretEntry.secret,
-      cid: secretEntry.cid,
-      exp: secretEntry.exp,
+      secret: client.secret,
+      cid: client.cid,
+      exp: client.exp,
     };
   } catch (err) {
     return { error: err };
   }
 };
 
-exports.destroySecret = async (cid) => {
+exports.destroyClient = async (cid) => {
   try {
-    const secret = await Secret.findOne({ where: { cid } });
-    if (!secret) return false;
-    await secret.destroy();
+    const client = await Client.findOne({ where: { cid } });
+    if (!client) return false;
+    await client.destroy();
     return true;
   } catch (err) {
     return { error: err };
   }
 };
 
-exports.extendSecret = async (cid, ms = SECRET_TTL) => {
+exports.extendClient = async (cid, ms = CLIENT_TTL) => {
   try {
-    const secret = await Secret.findOne({ where: { cid } });
-    if (!secret) return false;
-    secret.exp = setExpiration(ms);
-    await secret.save();
+    const client = await Client.findOne({ where: { cid } });
+    if (!client) return false;
+    client.exp = setExpiration(ms);
+    client.lastLogin = new Date().toISOString();
+    await client.save();
     return true;
   } catch (err) {
     return { error: err };
   }
 };
 
-exports.__cleanSecrets = async () => {
+exports.__cleanClients = async () => {
   try {
-    const secrets = await Secret.findAll();
-    secrets.forEach((secret) => {
-      if (new Date(secret.exp) < new Date()) {
-        secret.destroy();
+    const clients = await Client.findAll();
+    clients.forEach((client) => {
+      if (new Date(client.exp) < new Date()) {
+        client.destroy();
       }
     });
     return undefined;
