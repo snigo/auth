@@ -149,9 +149,12 @@ exports.createClient = async ({
   cid,
   agent,
   ip,
+  exp,
 }) => {
+  const expDate = (+exp) ? setExpiration(exp) : setExpiration(CLIENT_TTL);
   try {
     const client = await Client.create({
+      exp: expDate,
       secret,
       cid,
       agent,

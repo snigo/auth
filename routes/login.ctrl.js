@@ -1,7 +1,7 @@
 const bcrypt = require('bcrypt');
 const { v4: uuid } = require('uuid');
 const { getUserByEmail, createClient } = require('../model/user.model');
-const { badRequest, badCredentials, serverError } = require('./handlers');
+const { badRequest, invalidCredentials, serverError } = require('./handlers');
 
 module.exports = async (req, res) => {
   try {
@@ -9,11 +9,11 @@ module.exports = async (req, res) => {
     if (!email || !password) return badRequest(res);
 
     const user = await getUserByEmail(email);
-    if (!user) return badCredentials(res);
+    if (!user) return invalidCredentials(res);
     if (user.error) return serverError(res);
 
     const authorized = await bcrypt.compare(password, user.password);
-    if (!authorized) return badCredentials(res);
+    if (!authorized) return invalidCredentials(res);
 
     const agent = req.headers['user-agent'] || null;
     const ip = req.headers['x-forwarded-for']

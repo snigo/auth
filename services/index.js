@@ -55,8 +55,19 @@ const verify = async ({ spid, key, scope = 'service' }) => {
   }
 };
 
+const revokeService = async ({ spid }) => {
+  try {
+    const result = await redis.del(`${REDIS_PREFIX}-${spid}`);
+    return result;
+  } catch (err) {
+    logger.error(`Error while revoking a service.\nMessage: ${err}`);
+    return { error: err };
+  }
+};
+
 module.exports = {
   setAdmin,
   setService,
+  revokeService,
   verify,
 };
