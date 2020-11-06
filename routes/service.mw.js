@@ -8,8 +8,8 @@ exports.serviceAuthMW = async (req, res, next) => {
   if (!key || !spid) return invalidCredentials(res);
   try {
     const result = await verify({ spid, key });
-    if (result.error) return serverError(res);
     if (!result) return invalidCredentials(res);
+    if (result.error) return serverError(res);
     next();
   } catch (err) {
     logger.error(err);
