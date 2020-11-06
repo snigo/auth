@@ -4,6 +4,7 @@ const authRouter = require('./routes');
 const dbClient = require('./model');
 const { setCleanInterval } = require('./model/boot');
 const logger = require('./logger');
+const { setAdmin } = require('./services');
 
 const { PORT } = process.env;
 
@@ -14,7 +15,9 @@ app.use(express.json());
 app.use(authRouter);
 
 (async () => {
-  logger.info('Connecting to database...');
+  logger.info('Setting admin user...');
+  await setAdmin();
+  logger.info('Successfully added admin user. Connecting to database...');
   await dbClient.sync();
   setCleanInterval();
   logger.info('Successfully connected to database, starting server...');
