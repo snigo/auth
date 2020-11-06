@@ -54,8 +54,12 @@ const Client = db.define('Client', {
   },
 });
 
-Client.belongsTo(User);
-User.hasMany(Client);
+const associationOpts = {
+  foreignKey: 'userId',
+  as: 'clients',
+};
+Client.belongsTo(User, associationOpts);
+User.hasMany(Client, associationOpts);
 
 exports.createUser = async ({
   pid,
@@ -76,7 +80,8 @@ exports.createUser = async ({
       agent,
       ip,
     });
-    await client.setUser(user.id);
+    client.userId = user.id;
+    await client.save();
     return {
       pid: user.pid,
       secret: client.secret,
@@ -98,7 +103,7 @@ exports.getUser = async ({ pid, cid }) => {
         where: { cid },
       },
     });
-    if (!user || !user.client.length) return null;
+    if (!user || !user.clients.length) return null;
     const [client] = user.clients;
     return {
       pid: user.pid,
@@ -152,7 +157,8 @@ exports.createClient = async ({
       agent,
       ip,
     });
-    await client.setUser(userId);
+    client.userId = userId;
+    await client.save();
     return {
       secret: client.secret,
       cid: client.cid,
@@ -180,7 +186,7 @@ exports.destroyAllClients = async (cid) => {
   try {
     const client = await Client.findOne({ where: { cid } });
     if (!client) return false;
-    const clients = await Client.findAll({ where: { UserId: client.UserId } });
+    const clients = await Client.findAll({ where: { userId: client.userId } });
     await Promise.all(clients.map((_client) => _client.destroy()));
     return true;
   } catch (err) {
