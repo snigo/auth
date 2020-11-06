@@ -8,7 +8,7 @@ const authRouter = Router();
 
 authRouter.post('/auth', authCtrl);
 authRouter.post('/signup', signupCtrl);
-authRouter.post('login', loginCtrl);
-authRouter.post('logout', logoutCtrl);
+authRouter.post('/login', loginCtrl);
+authRouter.post('/logout', logoutCtrl);
 
 module.exports = authRouter;

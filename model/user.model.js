@@ -1,4 +1,5 @@
 const { DataTypes } = require('sequelize');
+const logger = require('../logger');
 const db = require('.');
 const { setExpiration } = require('./utils');
 
@@ -67,7 +68,7 @@ exports.createUser = async ({
 }) => {
   try {
     let user = await User.findOne({ where: { email } });
-    if (user) return { error: 'User already exists.' };
+    if (user) return false;
     user = await User.create({ pid, email, password });
     const client = await Client.create({
       secret,
@@ -82,6 +83,7 @@ exports.createUser = async ({
       cid: client.cid,
     };
   } catch (err) {
+    logger.error(err);
     return { error: err };
   }
 };
@@ -104,6 +106,7 @@ exports.getUser = async ({ pid, cid }) => {
       secret: client.secret,
     };
   } catch (err) {
+    logger.error(err);
     return { error: err };
   }
 };
@@ -113,6 +116,7 @@ exports.getUserByEmail = async (email) => {
     const user = await User.findOne({ where: { email } });
     return user || null;
   } catch (err) {
+    logger.error(err);
     return { error: err };
   }
 };
@@ -129,13 +133,25 @@ exports.updateUser = async ({ pid, email, password }) => {
     await user.save();
     return true;
   } catch (err) {
+    logger.error(err);
     return { error: err };
   }
 };
 
-exports.createClient = async ({ userId, secret, cid }) => {
+exports.createClient = async ({
+  userId,
+  secret,
+  cid,
+  agent,
+  ip,
+}) => {
   try {
-    const client = await Client.create({ secret, cid });
+    const client = await Client.create({
+      secret,
+      cid,
+      agent,
+      ip,
+    });
     await client.setUser(userId);
     return {
       secret: client.secret,
@@ -143,6 +159,7 @@ exports.createClient = async ({ userId, secret, cid }) => {
       exp: client.exp,
     };
   } catch (err) {
+    logger.error(err);
     return { error: err };
   }
 };
@@ -154,6 +171,20 @@ exports.destroyClient = async (cid) => {
     await client.destroy();
     return true;
   } catch (err) {
+    logger.error(err);
+    return { error: err };
+  }
+};
+
+exports.destroyAllClients = async (cid) => {
+  try {
+    const client = await Client.findOne({ where: { cid } });
+    if (!client) return false;
+    const clients = await Client.findAll({ where: { UserId: client.UserId } });
+    await Promise.all(clients.map((_client) => _client.destroy()));
+    return true;
+  } catch (err) {
+    logger.error(err);
     return { error: err };
   }
 };
@@ -167,6 +198,7 @@ exports.extendClient = async (cid, ms = CLIENT_TTL) => {
     await client.save();
     return true;
   } catch (err) {
+    logger.error(err);
     return { error: err };
   }
 };
@@ -181,6 +213,7 @@ exports.__cleanClients = async () => {
     });
     return undefined;
   } catch (err) {
+    logger.error(err);
     return { error: err };
   }
 };

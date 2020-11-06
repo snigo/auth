@@ -9,6 +9,11 @@ module.exports = async (req, res) => {
   const { email, password, pid } = req.body;
   if (!email || !password || !pid) return badRequest(res);
 
+  const agent = req.headers['user-agent'] || null;
+  const ip = req.headers['x-forwarded-for']
+    || (req.connection && req.connection.remoteAddress)
+    || null;
+
   try {
     const hash = await bcrypt.hash(password, +SALT_ROUNDS);
     const secret = uuid().replace(/-/g, '');
@@ -20,6 +25,8 @@ module.exports = async (req, res) => {
       pid,
       secret,
       cid,
+      agent,
+      ip,
     });
     if (!user) return conflict(res);
     if (user.error) return serverError(res);

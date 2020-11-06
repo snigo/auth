@@ -1,6 +1,6 @@
 const bcrypt = require('bcrypt');
 const { v4: uuid } = require('uuid');
-const { getUserByEmail, createSecret } = require('../model/user.model');
+const { getUserByEmail, createClient } = require('../model/user.model');
 const { badRequest, badCredentials, serverError } = require('./handlers');
 
 module.exports = async (req, res) => {
@@ -15,16 +15,26 @@ module.exports = async (req, res) => {
     const authorized = await bcrypt.compare(password, user.password);
     if (!authorized) return badCredentials(res);
 
+    const agent = req.headers['user-agent'] || null;
+    const ip = req.headers['x-forwarded-for']
+      || (req.connection && req.connection.remoteAddress)
+      || null;
     const cid = uuid().replace(/-/g, '');
     const secret = uuid().replace(/-/g, '');
 
-    const secretEntry = await createSecret({ userId: user.id, cid, secret });
-    if (secretEntry.error) return serverError(res);
+    const client = await createClient({
+      userId: user.id,
+      cid,
+      secret,
+      ip,
+      agent,
+    });
+    if (client.error) return serverError(res);
 
     res.status(200).json({
       pid: user.pid,
-      cid: secretEntry.cid,
-      secret: secretEntry.secret,
+      cid: client.cid,
+      secret: client.secret,
     });
   } catch (err) {
     return serverError(res);
