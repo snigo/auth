@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const { v4: uuid } = require('uuid');
+const logger = require('../logger');
 const {
   getUserByEmail,
   createClient,
@@ -83,6 +84,7 @@ exports.resetPasswordCtrl = async (req, res) => {
 
     res.status(200).json({ pid, cid: null });
   } catch (err) {
+    logger.error(`Encryption error while reseting a password.\nMessage: ${err}`);
     return serverError(res);
   }
 };

@@ -88,7 +88,7 @@ exports.createUser = async ({
       cid: client.cid,
     };
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error while creating a user.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -111,7 +111,7 @@ exports.getUser = async ({ pid, cid }) => {
       secret: client.secret,
     };
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error while retrieving a user.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -121,7 +121,7 @@ exports.getUserByEmail = async (email) => {
     const user = await User.findOne({ where: { email } });
     return user || null;
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error getting user by email.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -138,7 +138,7 @@ exports.updateUser = async ({ pid, email, password }) => {
     await user.save();
     return true;
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error while updating a user.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -168,7 +168,7 @@ exports.createClient = async ({
       exp: client.exp,
     };
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error while creating a client.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -180,7 +180,7 @@ exports.destroyClient = async (cid) => {
     await client.destroy();
     return true;
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error while destroying a client.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -193,7 +193,7 @@ exports.destroyAllClients = async (cid) => {
     await Promise.all(clients.map((_client) => _client.destroy()));
     return true;
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error while destroying all clients.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -207,7 +207,7 @@ exports.extendClient = async (cid, ms = CLIENT_TTL) => {
     await client.save();
     return true;
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error while extending a client.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -222,7 +222,7 @@ exports.__cleanClients = async () => {
     });
     return undefined;
   } catch (err) {
-    logger.error(err);
+    logger.error(`Error while cleaning clients.\nMessage: ${err}`);
     return { error: err };
   }
 };

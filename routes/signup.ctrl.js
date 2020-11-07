@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const { v4: uuid } = require('uuid');
+const logger = require('../logger');
 const { createUser } = require('../model/user.model');
 const { badRequest, serverError, conflict } = require('./handlers');
 
@@ -33,6 +34,7 @@ module.exports = async (req, res) => {
 
     res.status(200).json(user);
   } catch (err) {
+    logger.error(`Encryption error while signing up a user.\nMessage: ${err}`);
     return serverError(res);
   }
 };

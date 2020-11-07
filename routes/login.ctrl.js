@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const { v4: uuid } = require('uuid');
+const logger = require('../logger');
 const { getUserByEmail, createClient } = require('../model/user.model');
 const { badRequest, invalidCredentials, serverError } = require('./handlers');
 
@@ -37,6 +38,7 @@ module.exports = async (req, res) => {
       secret: client.secret,
     });
   } catch (err) {
+    logger.error(`Encryption error while logging in a user.\nMessage: ${err}`);
     return serverError(res);
   }
 };
