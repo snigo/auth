@@ -1,7 +1,12 @@
 const Redis = require('ioredis');
 const logger = require('../logger');
 
-const { REDIS_CONNECTION_URL, REDIS_PREFIX, ADMIN_KEY } = process.env;
+const {
+  REDIS_CONNECTION_URL,
+  REDIS_PREFIX,
+  ADMIN_ID,
+  ADMIN_KEY,
+} = process.env;
 
 const redis = new Redis(REDIS_CONNECTION_URL);
 
@@ -34,8 +39,8 @@ const setService = async ({
 const setAdmin = async () => {
   try {
     await setService({
-      spid: 'root',
-      label: 'ROOT ADMIN',
+      spid: ADMIN_ID,
+      label: 'Root admin',
       key: ADMIN_KEY,
       scope: 'admin',
     });
