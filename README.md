@@ -168,4 +168,4 @@ Note: this is the only response containing user email, suggesting that data from
 
 Make sure that token generated with `secret` is scoped exclusively to reset password link, authorization server **will not** do that for you and will treat all authorization requests equally!
 
-Note: secret expiration date for password reset requests by default set up to 1 hour, you can change this behaviour with `$PASSWORD_TTL` variable in `.env` file.
+Note: secret expiration time for password reset requests by default set up to 1 hour, you can change this behaviour with `$PASSWORD_TTL` variable in `.env` file.
