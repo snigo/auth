@@ -5,11 +5,14 @@ const {
   conflict,
   badRequest,
   invalidCredentials,
+  forbidden,
 } = require('./handlers');
 
 exports.registerServiceCtrl = async (req, res) => {
   try {
     const { label, scope, spid } = req.body;
+    if (scope === 'root') return forbidden(res);
+
     const serviceId = spid || uuid().replace(/-/g, '');
     const key = uuid().replace(/-/g, '');
 
@@ -29,15 +32,17 @@ exports.registerServiceCtrl = async (req, res) => {
 
 exports.revokeServiceCtrl = async (req, res) => {
   try {
-    const { spid, key } = req.body;
+    const { spid } = req.body;
     if (!spid) return badRequest(res);
 
-    const authorized = await verify({ spid, key });
-    if (!authorized) return invalidCredentials(res);
-    if (authorized.error) return serverError(res);
+    if (spid !== res.spid) {
+      const authorized = await verify({ spid });
+      if (!authorized) return invalidCredentials(res);
+      if (authorized.error) return serverError(res);
+    }
 
     const result = await revokeService({ spid });
-    if (!result) return conflict(res);
+    if (!result) return forbidden(res);
     if (result.error) return serverError(res);
 
     res.sendStatus(200);

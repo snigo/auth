@@ -10,6 +10,7 @@ const autorizeService = (scope) => async (req, res, next) => {
     const result = await verify({ spid, key, scope });
     if (!result) return invalidCredentials(res);
     if (result.error) return serverError(res);
+    res.spid = spid;
     next();
   } catch (err) {
     logger.error(err);

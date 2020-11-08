@@ -42,10 +42,10 @@ const setAdmin = async () => {
       spid: ADMIN_ID,
       label: 'Root admin',
       key: ADMIN_KEY,
-      scope: 'admin',
+      scope: 'root',
     });
   } catch (err) {
-    logger.error(`Error setting up admin user.\nMessage: ${err}`);
+    logger.error(`Error setting up root admin.\nMessage: ${err}`);
     return { error: err };
   }
 };
@@ -53,7 +53,11 @@ const setAdmin = async () => {
 const verify = async ({ spid, key, scope = 'service' }) => {
   try {
     const service = await redis.hgetall(`${REDIS_PREFIX}-${spid}`);
-    return !!(service && service.key === key && (service.scope === scope || service.scope === 'admin'));
+    return !!(
+      service
+      && service.key === key
+      && (service.scope === scope || service.scope === 'admin' || service.scope === 'root')
+    );
   } catch (err) {
     logger.error(`Failed during service verification.\nMessage: ${err}`);
     return { error: err };
@@ -62,6 +66,8 @@ const verify = async ({ spid, key, scope = 'service' }) => {
 
 const revokeService = async ({ spid }) => {
   try {
+    const service = await redis.hgetall(`${REDIS_PREFIX}-${spid}`);
+    if (service.scope === 'root') return false;
     const result = await redis.del(`${REDIS_PREFIX}-${spid}`);
     return result;
   } catch (err) {
